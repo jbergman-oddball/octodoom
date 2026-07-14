@@ -503,13 +503,18 @@ class _SurfaceTarget:
             x, y = transform.transformed_point(x, y)
         self._surface.blit(self._unwrap(image), (int(round(x)), int(round(y))))
 
-    def scale_blit(self, image, x: float, y: float, w: int, h: int, transform: "Matrix" = None) -> None:
+    def scale_blit(self, image, x: float, y: float, w: int, h: int, transform: "Matrix" = None, smooth: bool = False) -> None:
         if isinstance(transform, Matrix):
             x, y = transform.transformed_point(x, y)
         src = self._unwrap(image)
         new_w = max(1, abs(w))
         new_h = max(1, abs(h))
-        scaled = pygame.transform.scale(src, (new_w, new_h))
+        # Nearest-neighbor (pygame.transform.scale) is the default -- it's
+        # what keeps pixel-art sprites crisp and a scanned QR code's module
+        # edges sharp. Callers that want a photographic/vector asset (like a
+        # logo) to look smooth instead of blocky when resized can opt in.
+        scale_fn = pygame.transform.smoothscale if smooth else pygame.transform.scale
+        scaled = scale_fn(src, (new_w, new_h))
         if w < 0:
             scaled = pygame.transform.flip(scaled, True, False)
         if h < 0:

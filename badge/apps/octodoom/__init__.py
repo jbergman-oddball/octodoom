@@ -1184,6 +1184,26 @@ MENU_ITEMS = ("PLAY", "SHARE", "EXIT")
 menu_selected = 0
 exit_hint_until = 0
 
+# The desktop simulator's scale_blit() accepts an extra smooth= kwarg (see
+# badge_simulator.py) so the logo isn't blocky when scaled down. The real
+# badge firmware's scale_blit almost certainly doesn't know that keyword, so
+# probe for it once with a try/except (no inspect module on MicroPython)
+# instead of assuming -- if it's unsupported this falls back to a plain
+# scale_blit() forever after, rather than crashing every frame on real
+# hardware.
+_logo_smooth_supported = True
+
+
+def _draw_logo(x, y, size):
+    global _logo_smooth_supported
+    if _logo_smooth_supported:
+        try:
+            screen.scale_blit(logo, x, y, size, size, smooth=True)
+            return
+        except TypeError:
+            _logo_smooth_supported = False
+    screen.scale_blit(logo, x, y, size, size)
+
 
 def intro():
     global state, menu_selected, exit_hint_until
@@ -1191,7 +1211,7 @@ def intro():
     screen.brush = brushes.color(*CEILING_COLOR)
     screen.clear()
 
-    screen.scale_blit(logo, SCREEN_W // 2 - LOGO_SIZE // 2, 1, LOGO_SIZE, LOGO_SIZE)
+    _draw_logo(SCREEN_W // 2 - LOGO_SIZE // 2, 1, LOGO_SIZE)
 
     line_h = small_font.height + 3
     y = LOGO_SIZE + 4
